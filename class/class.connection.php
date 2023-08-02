@@ -1,27 +1,36 @@
 <?php
 
 
-
 class db
 {
+
+    /**
+     * PASS REMOTO
+     * URL: ec2-52-15-181-14.us-east-2.compute.amazonaws.com
+     */
+
 
     private $servername = "";
     private $DataBase = "";
     private $username = "";
     private $password = "";
 
-    public function __construct($servername = "", $namedb = "")
+    public function __construct($servername = "")
     {
+        $hostAws = 'ec2-52-15-181-14.us-east-2.compute.amazonaws.com';
         $userName = "root";
         $passName = "";
-        $this->DataBase = $namedb;
-        if (empty($servername) || $servername === "localhost") {
+        $this->DataBase = "sch_all_cleaned";
+        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != 'ec2-52-15-181-14.us-east-2.compute.amazonaws.com') {
             //Localhost
-            $this->servername = $servername;
+            $this->servername = "localhost";
             $this->username = $userName;
             $this->password = $passName;
         } else {
             //Remoto
+            $this->servername = $hostAws;
+            $this->username = "";
+            $this->password = "";
         }
     }
 
@@ -31,15 +40,21 @@ class db
             $_colunm = array();
             $_values = array();
             if (count($colunmValues) > 0) {
+                $db = $this->open();
                 foreach ($colunmValues as $value) {
                     $_colunm[] = $value[0];
                     $_values[] = "'$value[1]'";
                 }
                 $str = "INSERT INTO $name (" . implode(',', $_colunm) . ") VALUES (" . implode(",", $_values) . ")";
-                $result = $this->query($str);
-                return $result;
+                $result = $db->query($str);
+                $insert_id = $db->insert_id;
+                $db->close();
+                if ($result)
+                    return $insert_id;
+                else
+                    return false;
             }
-            return null;
+            return false;
         } catch (Exception $e) {
             return $e->getMessage();
         }
@@ -56,7 +71,6 @@ class db
             }
             if (is_numeric($id)) {
                 $str = "UPDATE $name SET  " . implode(',', $_values) . " WHERE rowid = $id";
-//                print_r($str); die();
                 $res = $this->query($str);
                 if ($res === 1)
                     return true;
@@ -80,7 +94,7 @@ class db
     public function Count($tableJoin, $where = "")
     {
         $db = $this->open();
-        $str = "select count(*) as count_number $tableJoin $where";
+        $str = "select count(*) as count_number from $tableJoin $where";
         $object = $db->query($str);
         $db->close();
         if ($object && $object->num_rows > 0) {
@@ -117,10 +131,33 @@ class db
         $response = $db->query($query);
         if ($response && $response->num_rows > 0)
             $obj = $response->fetch_object();
-        else
+        else {
+            $db->close();
             return false;
+        }
         $db->close();
         return $obj;
+    }
+
+    public function tableInsertRowsMasive($tableName, $data)
+    {
+        if (empty($data) || !is_array($data)) {
+            return false;
+        }
+        $db = $this->open();
+        $columns = implode(', ', array_keys($data[0]));
+        $values = array();
+        foreach ($data as $row) {
+            $rowValues = array_map(function ($value) use ($db) {
+                return "'" . mysqli_real_escape_string($db, $value) . "'";
+            }, $row);
+            $values[] = '(' . implode(', ', $rowValues) . ')';
+        }
+        $values = implode(', ', $values);
+        $query = "INSERT INTO $tableName ($columns) VALUES $values";
+        $result = $db->query($query);
+        $db->close();
+        return $result;
     }
 
     private function open()
@@ -130,8 +167,6 @@ class db
         return $mysql;
     }
 }
-
-
 
 
 ?>
