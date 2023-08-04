@@ -34,7 +34,7 @@ class db
         }
     }
 
-    public function tableInsertRow($name, $colunmValues = array())
+    public function tableInsertRow($name, $colunmValues = array(), $mysql_errno = false)
     {
         try {
             $_colunm = array();
@@ -47,12 +47,17 @@ class db
                 }
                 $str = "INSERT INTO $name (" . implode(',', $_colunm) . ") VALUES (" . implode(",", $_values) . ")";
                 $result = $db->query($str);
+                $errno = $db->error; //codigo de error de insercion
                 $insert_id = $db->insert_id;
                 $db->close();
                 if ($result)
                     return $insert_id;
-                else
-                    return false;
+                else{
+                    if($mysql_errno === true)
+                        return $errno;
+                    else
+                        return false;
+                }
             }
             return false;
         } catch (Exception $e) {
@@ -158,6 +163,13 @@ class db
         $result = $db->query($query);
         $db->close();
         return $result;
+    }
+
+    public function param_array_empty($data, $key, $cero = false){
+        if(is_array($data))
+            return isset($data[$key]) ? $data[$key] : ($cero === true ? "0" : "");
+        else
+            return "";
     }
 
     private function open()

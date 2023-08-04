@@ -111,6 +111,7 @@ switch ($accion) {
         $User = new User($db);
         $token = $requestData["token"];
         $idUser = $User->tokenObject($token)->rowid;
+        $is_admin = $User->tokenObject($token)->tipo;
         $descripcion = $requestData["descripcion"];
         //print_r($idUser); die();
         if ($idUser) {
@@ -118,16 +119,24 @@ switch ($accion) {
             $situacion = $requestData["situacion"];
 
             if ((int)$idOrden > 0) { //actualizar pedido
+
+                $estado = $db->fetchObject("select estado from all_pedidos_c where rowid = $idOrden")->estado;
+                if($estado === "E"){ //pedido entregado
+                    $response->errorAlert = "Este pedido ya se encuentra entregado";
+                    $response->send();
+                    return;
+                }
+
                 $pedidos_c = $db->tableUpdateRow("all_pedidos_c", array(
                     array("descripcion", $descripcion),
-                    array("estado", $situacion),
-                    array("id_users", $idUser)
+                    array("estado", $situacion)
                 ), $idOrden);
+
                 if ($idOrden) {
                     $dele = $db->query("DELETE  from all_pedidos_d where rowid > 0 and fk_pc = $idOrden");
                     if ($dele) {
                         $productos = $requestData["productos"];
-                       // print_r($productos); die();
+                        // print_r($productos); die();
                         $columns = [];
                         foreach ($productos as $key => $value) {
                             $columns[] = array("observacion" => $value["observacion"], "fk_pc" => $idOrden, "fk_producto" => (int)$value["rowid"], "cantidad" => (double)$value["cantidad"]);
@@ -136,6 +145,18 @@ switch ($accion) {
                         if (!$pedidos_d) { //ok creacion detalle
                             $response->errorAlert = "Ocurrio un error con la operación actualización pedido detalle";
                             //$db->query("DELETE FROM `all_pedidos_c` WHERE (`rowid` = '" . $idOrden . "');");
+                        }else{
+                            //actualizar stock de producto
+                            if($situacion == "E"){
+                                $str = "update 
+                                        all_products as p  
+                                    set 
+                                            p.cantidad = (round(p.cantidad, 2) + ifnull((select d.cantidad  from all_pedidos_d as d where d.fk_producto = p.rowid and  d.fk_pc = $idOrden), 0)) 
+                                    where 
+                                      p.rowid > 0 and 
+                                      p.rowid in(((select a.fk_producto from all_pedidos_d as a where a.fk_pc = $idOrden)))";
+                                $db->query($str);
+                            }
                         }
                     }
                 }
@@ -200,7 +221,7 @@ switch ($accion) {
              all_pedidos_d d on d.fk_pc = c.rowid
               inner join 
              all_user u on u.rowid = c.id_users
-             group by d.fk_pc " . $limit;
+             group by d.fk_pc order by c.rowid desc   " . $limit;
         $fetch = $db->fetchArray($query);
         $response->data = $fetch;
         $response->send();
@@ -226,6 +247,68 @@ switch ($accion) {
         $response->send();
         break;
 
+    case "ListaUsuarios":
+        $response = new Response();
+        $db = new db(SERVER_NAME);
+        $User = new User($db);
+        $token = $requestData["token"];
+        $idUser = $User->tokenObject($token)->rowid;
+        $query = "select * from all_user";
+        $fetch = $db->fetchArray($query);
+        $response->data = $fetch;
+        $response->send();
+        break;
+
+
+    case "createUpdateUsers":
+
+        $response = new Response();
+        $db = new db(SERVER_NAME);
+        $User = new User($db);
+        $token = $requestData["token"];
+        $idUser = $User->tokenObject($token)->rowid;
+        $rowid_users = isset($requestData["rowid"]) ? $requestData["rowid"] : "";
+
+        //asignos las columnas values
+        $columns = array(
+            array("nom", $db->param_array_empty($requestData, "nom")),
+            array("email", $db->param_array_empty($requestData, "email")),
+            array("pass", $db->param_array_empty($requestData, "password")),
+            array("users", $db->param_array_empty($requestData, "usuario")),
+            array("tipo", $db->param_array_empty($requestData, "tipo")),
+        );
+
+        if ($rowid_users > 0) {
+            //update
+            $value = $db->tableUpdateRow("all_user", $columns, $rowid_users);
+            if($value){
+                $response->success = "ok";
+            }else{
+                $response->errorAlert = "Ocurrio un error con la operación, verfique los datos e intentelo nuevamente";
+            }
+        } else {
+            //create
+            $value = $db->tableInsertRow("all_user", $columns, true);
+            if ($value > 0) {
+                //seccuse
+                $response->success = "ok";
+            } else {
+                //error
+                //se valida si es duplicado el string
+                $posDuplicate = strpos($value, "Duplicate");
+
+                if ($posDuplicate !== false) //es duplicate
+                {
+                    $response->errorAlert = "duplicidad de registro. usuario ya se encuentra registrado seleccione otro";
+                } else {
+                    $response->errorAlert = "ocurrio un error con la operación";
+                }
+                $response->errorAlert = $value;
+            }
+        }
+
+        $response->send();
+        break;
 
 }
 
