@@ -305,7 +305,7 @@ switch ($accion) {
         $User = new User($db);
         $token = $requestData["token"];
         $idUser = $User->tokenObject($token)->rowid;
-        $query = "select * from all_user";
+        $query = "select * , FLOOR(RAND() * 6)  as avatar from all_user";
         $fetch = $db->fetchArray($query);
         $response->data = $fetch;
         $response->send();
