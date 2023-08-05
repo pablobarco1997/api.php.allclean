@@ -113,6 +113,57 @@ switch ($accion) {
         $idUser = $User->tokenObject($token)->rowid;
         $is_admin = $User->tokenObject($token)->tipo;
         $descripcion = $requestData["descripcion"];
+        $productos = isset($requestData["productos"]) ? $requestData["productos"] : [];
+
+
+        //se valida que exista los productos
+        if (count($productos) == 0) {
+            $response->errorAlert = "No se detecto ningun producto. Comprube la informacion antes de continuar";
+            $response->send();
+            die();
+            return;
+        }
+
+        //se valida el stock de cada producto
+        $idprod = [];
+        $cant_pedido = []; //guardo la cantidad de cada producto del pedido por la key rowid
+        foreach ($productos as $value) {
+            $idprod[] = $value["rowid"];
+            $cant_pedido[$value["rowid"]] = (double)$value["cantidad"];
+        }
+        $acuValid = 0; //valida que contenga stock
+        $acuStockNegativo = 0;  // valida que el stock no pase a negativo
+        $nomProductos = [];
+        $st = $db->fetchArray("select rowid, cantidad, nombre  from all_products where rowid in(" . implode(",", $idprod) . ")");
+        foreach ($st as $v => $value) {
+            if ((double)$value["cantidad"] == 0)
+                $acuValid++;
+            if ((double)$value["cantidad"] > 0) {
+                $calculoStock = (double)$value["cantidad"] - (double)$cant_pedido[$value["rowid"]];
+                if ($calculoStock < 0) {//stock en negativo
+                    $acuStockNegativo++;
+                    $nomProductos[] = $value["nombre"];
+                }
+            }
+
+        }
+
+        //valida que el stock no sea cero
+        if ($acuValid > 0) {
+            $response->errorAlert = "No puede realizar el pedido se detecto productos con stock en 0";
+            $response->send();
+            die();
+            return;
+        }
+
+        //valida que el stock no quede en negativo despues de un pedido
+        if ($acuStockNegativo > 0) {
+            $response->errorAlert = "No puede realizar el pedido se detecto el stock en negativo. Productos ".implode(" - ", $nomProductos);
+            $response->send();
+            die();
+            return;
+        }
+
         //print_r($idUser); die();
         if ($idUser) {
             $idOrden = $requestData["idorden"];
@@ -121,7 +172,7 @@ switch ($accion) {
             if ((int)$idOrden > 0) { //actualizar pedido
 
                 $estado = $db->fetchObject("select estado from all_pedidos_c where rowid = $idOrden")->estado;
-                if($estado === "E"){ //pedido entregado
+                if ($estado === "E") { //pedido entregado
                     $response->errorAlert = "Este pedido ya se encuentra entregado";
                     $response->send();
                     return;
@@ -135,23 +186,23 @@ switch ($accion) {
                 if ($idOrden) {
                     $dele = $db->query("DELETE  from all_pedidos_d where rowid > 0 and fk_pc = $idOrden");
                     if ($dele) {
-                        $productos = $requestData["productos"];
-                        // print_r($productos); die();
                         $columns = [];
                         foreach ($productos as $key => $value) {
                             $columns[] = array("observacion" => $value["observacion"], "fk_pc" => $idOrden, "fk_producto" => (int)$value["rowid"], "cantidad" => (double)$value["cantidad"]);
                         }
+
+                        //se crea el detalle del pedido
                         $pedidos_d = $db->tableInsertRowsMasive("all_pedidos_d", $columns);
                         if (!$pedidos_d) { //ok creacion detalle
                             $response->errorAlert = "Ocurrio un error con la operación actualización pedido detalle";
                             //$db->query("DELETE FROM `all_pedidos_c` WHERE (`rowid` = '" . $idOrden . "');");
-                        }else{
+                        } else {
                             //actualizar stock de producto
-                            if($situacion == "E"){
+                            if ($situacion == "E") {
                                 $str = "update 
                                         all_products as p  
                                     set 
-                                            p.cantidad = (round(p.cantidad, 2) + ifnull((select d.cantidad  from all_pedidos_d as d where d.fk_producto = p.rowid and  d.fk_pc = $idOrden), 0)) 
+                                            p.cantidad = (round(p.cantidad, 2) - ifnull((select d.cantidad  from all_pedidos_d as d where d.fk_producto = p.rowid and  d.fk_pc = $idOrden), 0)) 
                                     where 
                                       p.rowid > 0 and 
                                       p.rowid in(((select a.fk_producto from all_pedidos_d as a where a.fk_pc = $idOrden)))";
@@ -162,13 +213,14 @@ switch ($accion) {
                 }
 
             } else { //crear nuevo pedido
+
                 $pedidos_c = $db->tableInsertRow("all_pedidos_c", array(
                     array("descripcion", $descripcion),
                     array("estado", "P"),
                     array("id_users", $idUser),
                 ));
+
                 if ($pedidos_c) { //ok cabezera returna el ultimo id
-                    $productos = $requestData["productos"];
                     $last_id = $pedidos_c;
                     $columns = [];
                     foreach ($productos as $key => $value) {
@@ -281,9 +333,9 @@ switch ($accion) {
         if ($rowid_users > 0) {
             //update
             $value = $db->tableUpdateRow("all_user", $columns, $rowid_users);
-            if($value){
+            if ($value) {
                 $response->success = "ok";
-            }else{
+            } else {
                 $response->errorAlert = "Ocurrio un error con la operación, verfique los datos e intentelo nuevamente";
             }
         } else {
