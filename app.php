@@ -8,12 +8,23 @@ require_once "class/class.send.response.php";
 
 header('Content-Type: application/json');
 
+
+
 $requestData = $_POST;
+
+
+if (1==1) {
+    $response = new Response();
+    $response->errorAlert = "Error de envio";
+    $response->send();
+    return;
+}
 
 if (!isset($requestData['accion'])) {
     $response = new Response();
     $response->errorAlert = "No se proporcionó la acción requerida.";
     $response->send();
+    return;
 }
 
 
@@ -23,6 +34,7 @@ if ($requestData["accion"] != "autentication") {
     if (!$User->validarToken($requestData["token"])) {
         $response->errorAlert = "Token Invalido cierre session y vuelva a iniciar";
         $response->send();
+        return;
     }
 }
 
