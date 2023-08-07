@@ -1,24 +1,31 @@
 <?php
 
+
+// Permite que cualquier origen (dominio) pueda acceder a los recursos de este servidor.
+header("Access-Control-Allow-Origin: *");
+// Permite que el cliente pueda incluir los encabezados personalizados en la solicitud.
+header("Access-Control-Allow-Headers: *");
+// Permite que el cliente pueda realizar solicitudes con los siguientes métodos HTTP.
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header('Content-Type: application/json');
+
 define("SERVER_NAME", "localhost");
 
 require_once "class/class.user.php";
 require_once "class/class.connection.php";
 require_once "class/class.send.response.php";
 
-header('Content-Type: application/json');
-
 
 
 $requestData = $_POST;
 
 
-if (1==1) {
-    $response = new Response();
-    $response->errorAlert = "Error de envio";
-    $response->send();
-    return;
-}
+//if (1==1) {
+//    $response = new Response();
+//    $response->errorAlert = "Error de acceso";
+//    $response->send();
+//    return;
+//}
 
 if (!isset($requestData['accion'])) {
     $response = new Response();
