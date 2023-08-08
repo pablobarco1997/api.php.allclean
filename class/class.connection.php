@@ -21,7 +21,7 @@ class db
         $userName = "root";
         $passName = "";
         $this->DataBase = "sch_all_cleaned";
-        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != 'ec2-18-117-100-224.us-east-2.compute.amazonaws.com') {
+        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != $hostAws) {
             //Localhost
             $this->servername = "localhost";
             $this->username = $userName;
