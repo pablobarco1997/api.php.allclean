@@ -21,7 +21,7 @@ class db
         $userName = "root";
         $passName = "";
         $this->DataBase = "sch_all_cleaned";
-        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != $hostAws) {
+        if (1!=1) {
             //Localhost
             $this->servername = "localhost";
             $this->username = $userName;
@@ -49,7 +49,7 @@ class db
                 $result = $db->query($str);
                 $errno = $db->error; //codigo de error de insercion
                 $insert_id = $db->insert_id;
-                //$db->close();
+                $db->close();
                 if ($result)
                     return $insert_id;
                 else{
@@ -92,7 +92,7 @@ class db
     {
         $db = $this->open();
         $fetch = $db->query($query)->fetch_all(MYSQLI_ASSOC);
-        //$db->close();
+        $db->close();
         return $fetch;
     }
 
@@ -101,7 +101,7 @@ class db
         $db = $this->open();
         $str = "select count(*) as count_number from $tableJoin $where";
         $object = $db->query($str);
-        //$db->close();
+        $db->close();
         if ($object && $object->num_rows > 0) {
             return $object->fetch_object()->count_number;
         } else {
@@ -114,7 +114,7 @@ class db
         $db = $this->open();
         $response = $db->query($query);
         $mysql_error = $db->error;
-        //$db->close();
+        $db->close();
         if ($mysql_error)
             return $mysql_error;
         else
@@ -125,7 +125,7 @@ class db
     {
         $db = $this->open();
         $response = $db->escape_string($params);
-        //$db->close();
+        $db->close();
         return $response;
     }
 
@@ -137,10 +137,10 @@ class db
         if ($response && $response->num_rows > 0)
             $obj = $response->fetch_object();
         else {
-            //$db->close();
+            $db->close();
             return false;
         }
-        //$db->close();
+        $db->close();
         return $obj;
     }
 
@@ -161,7 +161,7 @@ class db
         $values = implode(', ', $values);
         $query = "INSERT INTO $tableName ($columns) VALUES $values";
         $result = $db->query($query);
-        //$db->close();
+        $db->close();
         return $result;
     }
 
