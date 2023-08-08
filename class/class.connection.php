@@ -17,11 +17,11 @@ class db
 
     public function __construct($servername = "")
     {
-        $hostAws = 'ec2-52-15-181-14.us-east-2.compute.amazonaws.com';
+        $hostAws = 'ec2-18-117-100-224.us-east-2.compute.amazonaws.com';
         $userName = "root";
         $passName = "";
         $this->DataBase = "sch_all_cleaned";
-        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != 'ec2-52-15-181-14.us-east-2.compute.amazonaws.com') {
+        if ($servername === "localhost" && $_SERVER["SERVER_NAME"] != 'ec2-18-117-100-224.us-east-2.compute.amazonaws.com') {
             //Localhost
             $this->servername = "localhost";
             $this->username = $userName;
