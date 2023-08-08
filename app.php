@@ -41,6 +41,8 @@ $requestData = $_POST;
 //    return;
 //}
 
+SystemAccess(); 
+
 if (!isset($requestData['accion'])) {
     $response = new Response();
     $response->errorAlert = "No se proporcionó la acción requerida.";
