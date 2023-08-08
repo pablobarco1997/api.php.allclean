@@ -28,6 +28,13 @@ class User
         return $response;
     }
 
+    public  function pedido_status($id_orden_pedido){
+        if($id_orden_pedido === "" || $id_orden_pedido == 0)
+            return "";
+        $response = $this->db->fetchObject("select estado from all_pedidos_c where rowid = $id_orden_pedido");
+        return $response->estado;
+    }
+
 }
 
 

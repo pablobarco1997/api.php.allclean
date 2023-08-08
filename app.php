@@ -132,8 +132,16 @@ switch ($accion) {
         $idUser = $User->tokenObject($token)->rowid;
         $is_admin = $User->tokenObject($token)->tipo;
         $descripcion = $requestData["descripcion"];
+        $idOrden = $db->param_array_empty($requestData, "idorden");
         $productos = isset($requestData["productos"]) ? $requestData["productos"] : [];
 
+        if(!empty($idOrden) && $idOrden != 0){
+            if($User->pedido_status($idOrden) === "E"){
+                $response->errorAlert = "Situacción del pedido Entregado. No puede realizar esta operación";
+                $response->send();
+                die();
+            }
+        }
 
         //se valida que exista los productos
         if (count($productos) == 0) {
@@ -185,7 +193,6 @@ switch ($accion) {
 
         //print_r($idUser); die();
         if ($idUser) {
-            $idOrden = $requestData["idorden"];
             $situacion = $requestData["situacion"];
 
             if ((int)$idOrden > 0) { //actualizar pedido
