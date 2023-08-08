@@ -35,6 +35,11 @@ class User
         return $response->estado;
     }
 
+    public function system_access_users(){
+        $response = $this->db->fetchObject("SELECT access_not FROM system_access limit 1");
+        return $response->access_not;
+    }
+
 }
 
 

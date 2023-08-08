@@ -17,6 +17,20 @@ require_once "class/class.send.response.php";
 
 
 
+function SystemAccess(){
+    $response = new Response();
+    $db = new db(SERVER_NAME);
+    $User = new User($db);
+    if($User->system_access_users() === 1){ //acceso denegato
+        $response->errorAlert = "Acceso Denegado";
+        $response->send();
+        die();
+    }
+
+}
+
+
+
 $requestData = $_POST;
 
 
